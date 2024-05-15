@@ -11,7 +11,7 @@ class MediaTypeEnum(enum.Enum):
 class MediaModel(Base):
     __tablename__ = "media"
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"),nullable=True)
     type = Column(Enum(MediaTypeEnum))
     url = Column(String[500])
     uploaded_at = Column(DateTime,nullable=False,default=func.now())
