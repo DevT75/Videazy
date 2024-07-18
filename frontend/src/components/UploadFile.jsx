@@ -2,10 +2,14 @@ import React, { useEffect } from 'react'
 import { useRef, useState } from 'react'
 import { useFile } from '../context/FileContext';
 import axios from 'axios';
+import { uploadFiles } from '../services/api';
 
 
 const FileCard = ({ file, idx, handleCancel }) => {
+  const {compressed, setCompressed} = useFile();
   let name = file.name;
+  let key = "compressed_" + name;
+  console.log(key);
   let i = 0;
   while (i > 0 && name[i] != '.') i--;
   i++;
@@ -15,6 +19,13 @@ const FileCard = ({ file, idx, handleCancel }) => {
       <div className="flex w-full h-full flex-col gap-2 justify-around items-center py-1 rounded-md">
         <video src={URL.createObjectURL(file)} className='w-full h-full border-4 rounded-sm border-orange' />
         <button onClick={() => handleCancel(idx)} className='absolute -top-2 -right-2 px-2 py-1 bg-black text-white hover:bg-white hover:text-black hover:font-semibold transition-all duration-300 hover:shadow-[0_0_0_2px_rgba(0,0,0,1)] text-xs rounded-full'>X</button>
+        {
+          compressed.has(key) &&
+          <a className='bg-black text-orange px-2 py-1 -mt-1 rounded-lg'
+          href={`http://localhost:5000${compressed.get(key)}`}
+          download={`compressed_${file.name}`}
+          >Download</a>
+        }
       </div>
       {/* <p className='text-gray whitespace-nowrap text-xs'>{name}</p> */}
     </div>
@@ -23,7 +34,7 @@ const FileCard = ({ file, idx, handleCancel }) => {
 
 
 const DragDropFiles = ({ handleCancel, handleUpload }) => {
-  const { files, setFiles } = useFile();
+  const { files, setFiles,compressed, setCompressed } = useFile();
   const inputRef = useRef();
 
   const handleDragOver = (e) => {
@@ -39,6 +50,9 @@ const DragDropFiles = ({ handleCancel, handleUpload }) => {
     console.log(files);
   }, [files]);
 
+  useEffect(() => {
+    console.log(compressed);
+  },[compressed])
   // send files to the server // learn from my other video
 
 
@@ -69,28 +83,14 @@ const DragDropFiles = ({ handleCancel, handleUpload }) => {
   );
 };
 const UploadFile = () => {
-  const { files, setFiles } = useFile();
+  const { files, setFiles,compressed,setCompressed } = useFile();
+  const [loading, setLoading] = useState(false);
 
   const handleUpload = async () => {
-    const formData = new FormData();
-
-    // Append each file individually
-    for (let i = 0; i < files.length; i++) {
-      formData.append("files", files[i]);
-    }
-
-    console.log(formData);
-
-    try {
-      const response = await axios.post("http://localhost:5000/upload/", formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      console.log(response.data);
-    } catch (error) {
-      console.error("Error uploading files:", error);
-    }
+    setLoading(true);
+    const data = await uploadFiles(files, setCompressed);
+    setLoading(false);
+    return data;
   };
   const handleCancel = (idx) => setFiles(prev => prev.filter((_, index) => index !== idx));
 
@@ -114,7 +114,11 @@ const UploadFile = () => {
         files.length > 0 && (
           <div className='flex flex-row gap-4 mb-20 pt-4'>
             <button onClick={() => setFiles([])} className='px-4 py-2 bg-black text-white hover:bg-white hover:text-black hover:font-semibold transition-all duration-300 hover:shadow-[0_0_0_2px_rgba(0,0,0,1)] rounded-md'>Cancel</button>
-            <button onClick={handleUpload} className='px-4 py-2 bg-black text-white hover:bg-white hover:text-black hover:font-semibold transition-all duration-300 hover:shadow-[0_0_0_2px_rgba(0,0,0,1)] rounded-md'>Upload</button>
+            <button onClick={handleUpload} className='px-4 py-2 bg-black text-white hover:bg-white hover:text-black hover:font-semibold transition-all duration-300 hover:shadow-[0_0_0_2px_rgba(0,0,0,1)] rounded-md'>
+              {
+                loading ? "Uploading..." : "Upload"
+              }
+            </button>
           </div>)
       }
 
