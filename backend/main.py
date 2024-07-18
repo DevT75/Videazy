@@ -54,7 +54,7 @@ def delete_file(file_path: str):
         os.remove(file_path)
         print(f"Deleted file: {file_path}")
 
-# if __name__ == "__main__":
-#     import uvicorn
-#     port = int(os.environ.get("PORT", 5000))
-#     uvicorn.run("main:app", host="0.0.0.0", port=port,reload=True)
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 5000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port,reload=True)
