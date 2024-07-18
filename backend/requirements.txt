@@ -9,3 +9,4 @@ SQLAlchemy==2.0.20
 cloudinary
 email-validator
 pydantic[email]
+python-multipart
