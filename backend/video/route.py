@@ -1,4 +1,5 @@
 from fastapi import APIRouter,status,Depends,Request,UploadFile,File
+from typing import List
 from fastapi.responses import FileResponse
 from core.db import get_db
 from fastapi.exceptions import HTTPException
@@ -36,17 +37,20 @@ router = APIRouter(
 
 global_file_size = 0
 
-async def check_file_size(request: Request, file: UploadFile = UploadFile(...)):
+async def check_files_size(request: Request, files: List[UploadFile]):
     max_size = 1024 * 1024 * 1024  # Maximum size: 10 MB
     if request.user:
         max_size *= 2  # Double the size limit for authenticated users
-    file.file.seek(0, os.SEEK_END)
-    file_size = file.file.tell()
-    global_file_size = file_size
-    file.file.seek(0)  # Reset file pointer
-    if file_size > max_size:
-        raise HTTPException(status_code=413, detail="File size exceeds the limit")
-    return file
+    total_size = 0
+    for file in files:
+        file.file.seek(0, os.SEEK_END)
+        file_size = file.file.tell()
+        total_size += file_size
+        # global_file_size = file_size
+        file.file.seek(0)  # Reset file pointer
+    if total_size > max_size:
+        raise HTTPException(status_code=413, detail="Total file size exceeds the limit")
+    return files
 
 ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv','webm'}
 
@@ -103,29 +107,39 @@ def get_length(filename):
 
 
 @router.post("/",status_code=status.HTTP_200_OK)
-async def upload_media_unauthenticated(req:Request,file: UploadFile = Depends(check_file_size)):
-    if not file.filename.endswith(tuple(ALLOWED_EXTENSIONS)):
-        raise HTTPException(status_code=400, detail="Invalid file type")
-    return await compress_video(file=file)
+async def upload_media_unauthenticated(req:Request,files: List[UploadFile]):
+    results = []
+    for file in files:
+        if not file.filename.endswith(tuple(ALLOWED_EXTENSIONS)):
+            raise HTTPException(status_code=400, detail="Invalid file type")
+        result = await compress_video(file=file)
+        results.append(result)
+    return results
 
 @router.post("/me",status_code=status.HTTP_200_OK)
-async def upload_media_authenticated(req:Request,file:UploadFile,current_user:Annotated[UserModel,Depends(get_current_user)],db:Session = Depends(get_db)):
-    if not file.filename.endswith(tuple(ALLOWED_EXTENSIONS)):
-        raise HTTPException(status_code=400, detail="Invalid file type")
-    compressed_video = await compress_video(file=file)
-    compressed_file_path = os.path.join(compressed_folder,compressed_video["filename"])
-    upload_response = cloudinary.uploader.upload(compressed_file_path, resource_type="auto",public_id=f"compressed_{file.filename}{req.user.id}")
-    cloudinary_video_url = upload_response['secure_url']
-    # Save video metadata in the database
-    compressed_video= MediaModel(
-            user_id = req.user.id,
-            type=file.headers["content-type"].split('/')[0],
-            url=cloudinary_video_url,
-            uploaded_at=datetime.now()
-    )
-    db.add(compressed_video)
-    db.commit()
-    db.refresh(compressed_video)
+async def upload_media_authenticated(req:Request,current_user:Annotated[UserModel,Depends(get_current_user)],files:List[UploadFile] = Depends(check_files_size),db:Session = Depends(get_db)):
+    results = []
+    for file in files:
+        if not file.filename.endswith(tuple(ALLOWED_EXTENSIONS)):
+            raise HTTPException(status_code=400, detail="Invalid file type")
+        compressed_video = await compress_video(file=file)
+        compressed_file_path = os.path.join(compressed_folder,compressed_video["filename"])
+        upload_response = cloudinary.uploader.upload(compressed_file_path, resource_type="auto",public_id=f"compressed_{file.filename}{req.user.id}")
+        cloudinary_video_url = upload_response['secure_url']
+        # Save video metadata in the database
+        compressed_video= MediaModel(
+                user_id = req.user.id,
+                type=file.headers["content-type"].split('/')[0],
+                url=cloudinary_video_url,
+                uploaded_at=datetime.now()
+        )
+        db.add(compressed_video)
+        db.commit()
+        db.refresh(compressed_video)
+        results.append({
+            "filename": file.filename,
+            "download_url": f"/download/{f'compressed_{file.filename}'}"
+        })
 
     return { "download_url" : f"/download/{f'compressed_{file.filename}'}" }
 
@@ -135,12 +149,17 @@ async def compress_video(file: UploadFile):
     os.makedirs(upload_folder, exist_ok=True)
     os.makedirs(compressed_folder, exist_ok=True)
     file_path = os.path.join(upload_folder, file.filename)
-
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
     compressed_filename = 'compressed_' + file.filename
     compressed_file_path = os.path.join(compressed_folder, compressed_filename)
+    
+    if os.path.exists(compressed_file_path):
+        print("Returning already compressed file")
+        return {"filename": compressed_filename, "url": f"/download/{compressed_filename}", "status": "already_compressed"}
+    else:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+
     ffmpeg_command = [ 'ffmpeg', '-i', file_path ]
     file_codec = ffmpeg.probe(file_path)["streams"][0]["codec_name"]
     options,preset = get_codec_options(file_codec)
