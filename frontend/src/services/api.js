@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const URL = import.meta.env.API_URL || "http://localhost:5000";
+const URL = import.meta.env.API_URL || "https://videazy.onrender.com";
 
 export const uploadFiles = async (files,setCompressed) => {
     const formData = new FormData();
