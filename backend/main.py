@@ -16,6 +16,7 @@ origins = [
     "https://localhost.tiangolo.com",
     "http://localhost",
     "http://localhost:5173",
+    "https://videazy.vercel.app/"
 ]
 
 app.add_middleware(
@@ -52,3 +53,8 @@ def delete_file(file_path: str):
     if os.path.exists(file_path):
         os.remove(file_path)
         print(f"Deleted file: {file_path}")
+
+if __name__ == "__main__":
+    import uvicorn
+    port = os.environ.get("PORT", 5000)
+    uvicorn.run("main:app", host="0.0.0.0", port=port,reload=True)
