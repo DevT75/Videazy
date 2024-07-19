@@ -35,22 +35,6 @@ router = APIRouter(
     tags=["Upload"],
 )
 
-origins = [
-    "http://localhost.tiangolo.com",
-    "https://localhost.tiangolo.com",
-    "http://localhost",
-    "http://localhost:5173",
-    "https://videazy.vercel.app/"
-]
-
-router.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 global_file_size = 0
 
 async def check_files_size(request: Request, files: List[UploadFile]):
@@ -118,8 +102,8 @@ def get_length(filename):
         stderr=subprocess.STDOUT)
     return float(result.stdout)
 
-@router.get("/",status_code=status.HTTP_200_OK)
-async def upload_media():
+@router.get("/")
+async def upload():
     return {"message": "You may upload media here!!"}
 
 @router.post("/", status_code=status.HTTP_200_OK)
