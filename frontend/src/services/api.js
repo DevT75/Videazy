@@ -10,6 +10,7 @@ export const uploadFiles = async (files, setCompressed) => {
     // console.log(formData);
     try {
         const response = await axios.post(`${URL}/upload/`, formData, {
+            withCredentials: true,
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
@@ -26,7 +27,8 @@ export const downloadFile = async (url, filename) => {
         console.log('Starting download for:', `${URL}${url}`);
 
         const response = await axios.get(`${URL}${url}`, {
-            responseType: 'blob'
+            responseType: 'blob',
+            withCredentials: true,
         });
 
         console.log('Response received:', response.status);
