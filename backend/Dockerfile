@@ -1,5 +1,7 @@
 FROM python:3.11-alpine
 
+RUN apk add --no-cache ffmpeg
+
 COPY ./ ./
 
 COPY ./main.py ./app.py
