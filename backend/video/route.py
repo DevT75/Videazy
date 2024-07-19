@@ -1,6 +1,6 @@
 from fastapi import APIRouter,status,Depends,Request,UploadFile,File
 from typing import List
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from core.db import get_db
 from fastapi.exceptions import HTTPException
 from users.models import UserModel
@@ -22,6 +22,8 @@ import sys
 
 env_path = Path(".") / ".env"
 load_dotenv(dotenv_path=env_path)
+
+FRONTEND_URL = "https://videazy.vercel.app"
 
 cloudinary.config(
     cloud_name = os.getenv('CLOUDINARY_NAME'),
@@ -114,7 +116,10 @@ async def upload_media_unauthenticated(req:Request,files: List[UploadFile]):
             raise HTTPException(status_code=400, detail="Invalid file type")
         result = await compress_video(file=file)
         results.append(result)
-    return results
+    response = JSONResponse(content=results)
+    response.headers["Access-Control-Allow-Origin"] = FRONTEND_URL
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 @router.post("/me",status_code=status.HTTP_200_OK)
 async def upload_media_authenticated(req:Request,current_user:Annotated[UserModel,Depends(get_current_user)],files:List[UploadFile] = Depends(check_files_size),db:Session = Depends(get_db)):
@@ -140,8 +145,10 @@ async def upload_media_authenticated(req:Request,current_user:Annotated[UserMode
             "filename": file.filename,
             "download_url": f"/download/{f'compressed_{file.filename}'}"
         })
-
-    return { "download_url" : f"/download/{f'compressed_{file.filename}'}" }
+    response = JSONResponse(content=results)
+    response.headers["Access-Control-Allow-Origin"] = FRONTEND_URL
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 
 

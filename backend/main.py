@@ -1,6 +1,6 @@
 import os
 from fastapi import FastAPI, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from users.route import router as user_router,token_router
 from auth.route import router as auth_router
 from core.security import JWTAuth
@@ -10,6 +10,8 @@ from video.route import compressed_folder,upload_folder
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+FRONTEND_URL = "https://videazy.vercel.app"
 
 origins = [
     "http://localhost.tiangolo.com",
@@ -23,16 +25,24 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=origins,
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
 @app.middleware("http")
 async def add_cors_headers(request, call_next):
     response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "https://videazy.vercel.app"
+    response.headers["Access-Control-Allow-Origin"] = FRONTEND_URL
     response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Allow-Methods"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "*"
@@ -50,15 +60,18 @@ async def home():
     return {"Response" : "Hello World!!!"}
 
 @app.get("/download/{filename}")
-async def download_file(filename: str,background_tasks: BackgroundTasks):
-    file_path = os.path.join(compressed_folder,filename)
+async def download_file(filename: str, background_tasks: BackgroundTasks):
+    file_path = os.path.join(compressed_folder, filename)
     upload_file_name = filename.replace('compressed_','')
-    upload_file_path = os.path.join(upload_folder,upload_file_name)
+    upload_file_path = os.path.join(upload_folder, upload_file_name)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
-    background_tasks.add_task(delete_file,file_path)
-    background_tasks.add_task(delete_file,upload_file_path)
-    return FileResponse(path=file_path, filename=filename)
+    background_tasks.add_task(delete_file, file_path)
+    background_tasks.add_task(delete_file, upload_file_path)
+    response = FileResponse(path=file_path, filename=filename)
+    response.headers["Access-Control-Allow-Origin"] = FRONTEND_URL
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 def delete_file(file_path: str):
     if os.path.exists(file_path):
@@ -67,7 +80,12 @@ def delete_file(file_path: str):
 
 @app.options("/upload/")
 async def options_upload():
-    return {"message": "OK"}
+    response = JSONResponse(content={"message": "OK"})
+    response.headers["Access-Control-Allow-Origin"] = FRONTEND_URL
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 if __name__ == "__main__":
     import uvicorn
