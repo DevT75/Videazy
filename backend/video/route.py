@@ -1,6 +1,7 @@
 from fastapi import APIRouter, status, Depends, Request, UploadFile, File
 from typing import List
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from core.db import get_db
 from fastapi.exceptions import HTTPException
 from users.models import UserModel
@@ -32,6 +33,22 @@ cloudinary.config(
 router = APIRouter(
     prefix="/upload",
     tags=["Upload"],
+)
+
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:5173",
+    "https://videazy.vercel.app/"
+]
+
+router.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 global_file_size = 0
