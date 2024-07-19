@@ -2,11 +2,11 @@ import React, { useEffect } from 'react'
 import { useRef, useState } from 'react'
 import { useFile } from '../context/FileContext';
 import axios from 'axios';
-import { uploadFiles } from '../services/api';
+import { downloadFile, uploadFiles } from '../services/api';
 
 
 const FileCard = ({ file, idx, handleCancel }) => {
-  const {compressed, setCompressed} = useFile();
+  const { compressed, setCompressed } = useFile();
   let name = file.name;
   let key = "compressed_" + name;
   console.log(key);
@@ -21,10 +21,14 @@ const FileCard = ({ file, idx, handleCancel }) => {
         <button onClick={() => handleCancel(idx)} className='absolute -top-2 -right-2 px-2 py-1 bg-black text-white hover:bg-white hover:text-black hover:font-semibold transition-all duration-300 hover:shadow-[0_0_0_2px_rgba(0,0,0,1)] text-xs rounded-full'>X</button>
         {
           compressed.has(key) &&
-          <a className='bg-black text-orange px-2 py-1 -mt-1 rounded-lg'
-          href={`http://localhost:5000${compressed.get(key)}`}
-          download={`compressed_${file.name}`}
-          >Download</a>
+          <a className='bg-black text-orange px-2 py-1 -mt-1 rounded-lg cursor-pointer'
+            onClick={async (e) => {
+              e.preventDefault();
+              await downloadFile(compressed.get(key),file.name);
+            }}
+          >
+            Download
+          </a>
         }
       </div>
       {/* <p className='text-gray whitespace-nowrap text-xs'>{name}</p> */}
@@ -34,7 +38,7 @@ const FileCard = ({ file, idx, handleCancel }) => {
 
 
 const DragDropFiles = ({ handleCancel, handleUpload }) => {
-  const { files, setFiles,compressed, setCompressed } = useFile();
+  const { files, setFiles, compressed, setCompressed } = useFile();
   const inputRef = useRef();
 
   const handleDragOver = (e) => {
@@ -52,7 +56,7 @@ const DragDropFiles = ({ handleCancel, handleUpload }) => {
 
   useEffect(() => {
     console.log(compressed);
-  },[compressed])
+  }, [compressed])
   // send files to the server // learn from my other video
 
 
@@ -83,7 +87,7 @@ const DragDropFiles = ({ handleCancel, handleUpload }) => {
   );
 };
 const UploadFile = () => {
-  const { files, setFiles,compressed,setCompressed } = useFile();
+  const { files, setFiles, compressed, setCompressed } = useFile();
   const [loading, setLoading] = useState(false);
 
   const handleUpload = async () => {
