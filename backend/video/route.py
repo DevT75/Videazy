@@ -158,7 +158,6 @@ async def compress_video(file: UploadFile):
     file_path = os.path.join(upload_folder, file.filename)
     compressed_filename = 'compressed_' + file.filename
     compressed_file_path = os.path.join(compressed_folder, compressed_filename)
-    
     if os.path.exists(compressed_file_path):
         print("Returning already compressed file")
         return {"filename": compressed_filename, "url": f"/download/{compressed_filename}", "status": "already_compressed"}

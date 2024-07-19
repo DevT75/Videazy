@@ -25,7 +25,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL],
+    allow_origins=["https://videazy.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,6 +46,17 @@ async def add_cors_headers(request, call_next):
     response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Allow-Methods"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+import logging
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    logging.info(f"Received request: {request.method} {request.url}")
+    logging.info(f"Headers: {request.headers}")
+    response = await call_next(request)
+    logging.info(f"Response status: {response.status_code}")
+    logging.info(f"Response headers: {response.headers}")
     return response
 
 app.include_router(user_router)
