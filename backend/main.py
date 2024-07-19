@@ -29,6 +29,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def add_cors_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "https://videazy.vercel.app"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
 app.include_router(user_router)
 app.include_router(auth_router)
 app.include_router(token_router)
@@ -55,6 +64,10 @@ def delete_file(file_path: str):
     if os.path.exists(file_path):
         os.remove(file_path)
         print(f"Deleted file: {file_path}")
+
+@app.options("/upload/")
+async def options_upload():
+    return {"message": "OK"}
 
 if __name__ == "__main__":
     import uvicorn
