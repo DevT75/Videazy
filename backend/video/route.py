@@ -101,6 +101,10 @@ def get_length(filename):
         stderr=subprocess.STDOUT)
     return float(result.stdout)
 
+@router.get("/",status_code=status.HTTP_200_OK)
+async def upload_media():
+    return {"message": "You may upload media here!!"}
+
 @router.post("/", status_code=status.HTTP_200_OK)
 async def upload_media_unauthenticated(req: Request, files: List[UploadFile]):
     results = []
