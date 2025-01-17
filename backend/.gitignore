@@ -1,3 +1,5 @@
 .vercel
 backend.zip
 .env
+static
+venv

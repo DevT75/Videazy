@@ -12,8 +12,8 @@ async def create_user_account(data,db):
         last_name=data.last_name,
         email=data.email,
         password=get_password_hash(data.password),
-        is_active=False,
-        is_verified=False,
+        is_active=True, # for now by default user is active, in future plan is to mobile verify them
+        is_verified=True, # same with verification
         registered_at=datetime.now(),
         updated_at=datetime.now()
     )

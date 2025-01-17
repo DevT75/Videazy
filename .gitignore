@@ -1,1 +1,6 @@
 .vercel
+node_modules
+backend/static
+backend/venv
+.env
+backend.zip
